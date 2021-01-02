@@ -8,31 +8,35 @@ final String columnId = 'id';
 final String columnName = 'name';
 final String columnDateTime = 'medDateTime';
 final String columnNote = 'note';
+final String columnDisplay = 'display';
 
 class MedInfo {
   int id;
   String name;
   DateTime medDateTime;
   String note;
+  int display;
 
   MedInfo({
     this.id,
     this.name,
     this.medDateTime,
     this.note,
+    this.display,
   });
 
   factory MedInfo.fromMap(Map<String, dynamic> json) => MedInfo(
-        id: json["id"],
-        name: json["name"],
-        medDateTime: DateTime.parse(json["medDateTime"]),
-        note: json["note"],
-      );
+      id: json["id"],
+      name: json["name"],
+      medDateTime: DateTime.parse(json["medDateTime"]),
+      note: json["note"],
+      display: json["display"]);
   Map<String, dynamic> toMap() => {
         "id": id,
         "name": name,
         "medDateTime": medDateTime.toIso8601String(),
         "note": note,
+        "display": display,
       };
 }
 
@@ -68,7 +72,8 @@ class DatabaseHelper {
           $columnId integer primary key autoincrement,
           $columnName text not null,
           $columnDateTime text not null,
-          $columnNote text not null
+          $columnNote text not null,
+          $columnDisplay integer
           )
         ''');
       },

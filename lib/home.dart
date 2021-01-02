@@ -24,8 +24,10 @@ class _HomeState extends State<Home> {
             if (_stringSet.contains(_meds[i].name)) {
               continue;
             } else {
-              _stringSet.add(_meds[i].name);
-              _medSet.add(_meds[i]);
+              if (_meds[i].display == 1) {
+                _stringSet.add(_meds[i].name);
+                _medSet.add(_meds[i]);
+              }
             }
           }
         });
@@ -38,16 +40,21 @@ class _HomeState extends State<Home> {
   Widget build(BuildContext context) {
     return _medSet == null
         ? Container()
-        : ListView.builder(
-            itemBuilder: (context, i) {
-              var medTime = DateFormat('yyyy MMMM d hh:mm aa')
-                  .format(_medSet.elementAt(i).medDateTime);
-              return Container(
-                child: Text(
-                    '$medTime, ${_medSet.elementAt(i).note}, ${_medSet.elementAt(i).name}'),
-              );
+        : WillPopScope(
+            onWillPop: () {
+              return;
             },
-            itemCount: _medSet.length,
+            child: ListView.builder(
+              itemBuilder: (context, i) {
+                var medTime = DateFormat('yyyy MMMM d hh:mm aa')
+                    .format(_medSet.elementAt(i).medDateTime);
+                return Container(
+                  child: Text(
+                      '$medTime, ${_medSet.elementAt(i).note}, ${_medSet.elementAt(i).name}, display: ${_medSet.elementAt(i).display}'),
+                );
+              },
+              itemCount: _medSet.length,
+            ),
           );
   }
 }
