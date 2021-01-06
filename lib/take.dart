@@ -8,10 +8,11 @@ class TakeMedicine extends StatefulWidget {
 
 class _TakeMedicineState extends State<TakeMedicine> {
   List<MedInfo> _meds = List();
-  Set<String> _stringSet = Set();
-  List<MedInfo> _medSet = List();
+  Map<String, int> _medSet = Map();
   bool adding = false;
+  bool deleting = false;
   DatabaseHelper _databaseHelper = DatabaseHelper();
+  int index;
 
   @override
   void initState() {
@@ -19,12 +20,9 @@ class _TakeMedicineState extends State<TakeMedicine> {
       _databaseHelper.getMeds().then((_med) {
         setState(() {
           _meds = _med;
-          for (int i = _meds.length - 1; i >= 0; i--) {
-            if (_stringSet.contains(_meds[i].name)) {
-              continue;
-            } else {
-              _stringSet.add(_meds[i].name);
-              _medSet.insert(0, _meds[i]);
+          for (int i = 0; i < _meds.length; i++) {
+            if (_meds[i].display == 0) {
+              _medSet[_meds[i].name] = _meds[i].id;
             }
           }
         });
@@ -39,26 +37,32 @@ class _TakeMedicineState extends State<TakeMedicine> {
       onWillPop: () {
         setState(() {
           adding = false;
+          deleting = false;
         });
         return;
       },
       child: Stack(
         children: [
           Container(
-            //color: Colors.red,
-            alignment: Alignment(0, 1),
+            alignment: Alignment(0, .5),
             child: Container(
-              //color: Colors.green,
               height: 550,
               width: 400,
               child: ListView.builder(
                 itemBuilder: (context, i) {
                   return ElevatedButton(
-                    child: Text('${_medSet[i].name}'),
+                    child: Text('${_medSet.keys.elementAt(i)}'),
+                    onLongPress: () {
+                      setState(() {
+                        adding = false;
+                        deleting = true;
+                        index = i;
+                      });
+                    },
                     onPressed: () async {
                       var medInfo = MedInfo(
                         medDateTime: DateTime.now(),
-                        name: _medSet[i].name,
+                        name: _medSet.keys.elementAt(i),
                         note: 'note',
                         display: 1,
                       );
@@ -86,13 +90,11 @@ class _TakeMedicineState extends State<TakeMedicine> {
                           note: 'note',
                           display: 0,
                         );
-                        _databaseHelper.insertMed(medInfo);
-                        setState(() {
-                          if (!_stringSet.contains(medInfo.name)) {
-                            _medSet.insert(_medSet.length, medInfo);
-                          }
-                          _stringSet.add(medInfo.name);
-                          adding = !adding;
+                        _databaseHelper.insertMed(medInfo).then((newId) {
+                          setState(() {
+                            adding = !adding;
+                            _medSet[string] = newId;
+                          });
                         });
                       },
                       decoration: InputDecoration(
@@ -127,8 +129,81 @@ class _TakeMedicineState extends State<TakeMedicine> {
               ),
             ),
           ),
+          deleting
+              ? Align(
+                  alignment: Alignment(0, -.8),
+                  child: buttonRow(index),
+                )
+              : Container(),
         ],
       ),
+    );
+  }
+
+  Widget buttonRow(int i) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(primary: Colors.red),
+            child: Text(
+              _medSet.keys.elementAt(i).length > 11
+                  ? 'Delete History ${_medSet.keys.elementAt(i).substring(0, 11)}...'
+                  : 'Delete History ${_medSet.keys.elementAt(i)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _databaseHelper.deleteName(_medSet.keys.elementAt(i));
+                _medSet.remove(_medSet.keys.elementAt(i));
+                deleting = false;
+              });
+            },
+          ),
+        ),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(primary: Colors.yellow),
+            child: Text(
+              _medSet.keys.elementAt(i).length > 11
+                  ? 'Delete Button ${_medSet.keys.elementAt(i).substring(0, 11)}...'
+                  : 'Delete Button ${_medSet.keys.elementAt(i)}',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                _databaseHelper.delete(_medSet[_medSet.keys.elementAt(i)]);
+                _medSet.remove(_medSet.keys.elementAt(i));
+                deleting = false;
+              });
+            },
+          ),
+        ),
+        Expanded(
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(primary: Colors.grey[200]),
+            child: Text(
+              'Cancel',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.black,
+              ),
+            ),
+            onPressed: () {
+              setState(() {
+                deleting = false;
+              });
+            },
+          ),
+        ),
+      ],
     );
   }
 }

@@ -81,10 +81,11 @@ class DatabaseHelper {
     return database;
   }
 
-  void insertMed(MedInfo medInfo) async {
+  insertMed(MedInfo medInfo) async {
     var db = await this.database;
     var result = await db.insert(tableMeds, medInfo.toMap());
     print('result : $result');
+    return result;
   }
 
   getMeds() async {
@@ -103,5 +104,11 @@ class DatabaseHelper {
   Future<int> delete(int id) async {
     var db = await this.database;
     return await db.delete(tableMeds, where: '$columnId = ?', whereArgs: [id]);
+  }
+
+  Future<int> deleteName(String name) async {
+    var db = await this.database;
+    return await db
+        .delete(tableMeds, where: '$columnName = ?', whereArgs: [name]);
   }
 }

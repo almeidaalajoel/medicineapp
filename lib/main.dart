@@ -50,7 +50,7 @@ class _MyAppState extends State<MyApp> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.add_circle_outline),
-            label: 'Add',
+            label: 'Take',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_today_outlined),

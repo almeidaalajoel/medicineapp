@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'data.dart';
 import 'dart:collection';
 import 'package:intl/intl.dart';
+import 'dart:core';
 
 class Home extends StatefulWidget {
   @override
@@ -11,7 +12,9 @@ class Home extends StatefulWidget {
 class _HomeState extends State<Home> {
   List<MedInfo> _meds = List();
   Set<String> _stringSet = Set();
-  Set<MedInfo> _medSet = Set();
+  Set<MedInfo> _medSetToday = Set();
+  Set<MedInfo> _medSetYesterday = Set();
+  Set<MedInfo> _medSetOld = Set();
   DatabaseHelper _databaseHelper = DatabaseHelper();
 
   @override
@@ -26,7 +29,20 @@ class _HomeState extends State<Home> {
             } else {
               if (_meds[i].display == 1) {
                 _stringSet.add(_meds[i].name);
-                _medSet.add(_meds[i]);
+                if (DateTime.now().day == _meds[i].medDateTime.day &&
+                    DateTime.now().month == _meds[i].medDateTime.month &&
+                    DateTime.now().year == _meds[i].medDateTime.year) {
+                  _medSetToday.add(_meds[i]);
+                } else if (DateTime.now().subtract(Duration(days: 1)).day ==
+                        _meds[i].medDateTime.day &&
+                    DateTime.now().subtract(Duration(days: 1)).month ==
+                        _meds[i].medDateTime.month &&
+                    DateTime.now().subtract(Duration(days: 1)).year ==
+                        _meds[i].medDateTime.year) {
+                  _medSetYesterday.add(_meds[i]);
+                } else {
+                  _medSetOld.add(_meds[i]);
+                }
               }
             }
           }
@@ -38,23 +54,167 @@ class _HomeState extends State<Home> {
 
   @override
   Widget build(BuildContext context) {
-    return _medSet == null
+    return (_medSetToday == null &&
+            _medSetYesterday == null &&
+            _medSetOld == null)
         ? Container()
         : WillPopScope(
             onWillPop: () {
               return;
             },
-            child: ListView.builder(
-              itemBuilder: (context, i) {
-                var medTime = DateFormat('yyyy MMMM d hh:mm aa')
-                    .format(_medSet.elementAt(i).medDateTime);
-                return Container(
-                  child: Text(
-                      '$medTime, ${_medSet.elementAt(i).note}, ${_medSet.elementAt(i).name}, display: ${_medSet.elementAt(i).display}'),
-                );
-              },
-              itemCount: _medSet.length,
+            child: Container(
+              //color: Colors.blue[100],
+              child: Column(
+                children: [
+                  Container(
+                    margin: EdgeInsets.only(top: 30),
+                    child: Text(
+                      'Most Recent Medications',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.builder(
+                      padding: EdgeInsets.all(3),
+                      itemBuilder: (context, i) {
+                        Set<MedInfo> medSet;
+                        if (i == 0 ||
+                            i == _medSetToday.length + 1 ||
+                            i ==
+                                _medSetToday.length +
+                                    _medSetYesterday.length +
+                                    2) {
+                          return _textReturn(
+                              i, _medSetToday, _medSetYesterday, _medSetOld);
+                        }
+                        medSet = _findMedSet(i);
+                        i = _fixI(i, _medSetToday, _medSetYesterday);
+                        var medTime = DateFormat('MMMM d h:mm aa')
+                            .format(medSet.elementAt(i).medDateTime);
+                        Duration duration = DateTime.now()
+                            .difference(medSet.elementAt(i).medDateTime);
+                        String hours =
+                            duration.inHours == 1 || duration.inHours == 0
+                                ? 'hour'
+                                : 'hours';
+                        String d = duration.inHours == 0
+                            ? 'less than an'
+                            : '${duration.inHours}';
+                        return Container(
+                          height: 100,
+                          //width: 50,
+                          margin: EdgeInsets.fromLTRB(10, 0, 10, 10),
+                          padding: EdgeInsets.all(10),
+                          child: Column(
+                            children: [
+                              Text(
+                                medSet.elementAt(i).name,
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                ' Last taken $d $hours ago',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  //fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text('On $medTime '),
+                            ],
+                          ),
+                          decoration: BoxDecoration(
+                            color: _findColor(duration.inHours),
+                            borderRadius: BorderRadius.circular(30.0),
+                          ),
+                        );
+                      },
+                      itemCount: _medSetToday.length +
+                          _medSetYesterday.length +
+                          _medSetOld.length +
+                          3,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
+  }
+
+  Widget _textReturn(int i, Set<MedInfo> _medSetToday,
+      Set<MedInfo> _medSetYesterday, Set<MedInfo> _medSetOld) {
+    String text;
+    if (i == 0) {
+      text = "Today: ${DateFormat('MMMM d').format(DateTime.now())}";
+      if (_medSetToday.length == 0) {
+        return null;
+      }
+    } else if (i == _medSetToday.length + 1) {
+      text =
+          'Yesterday: ${DateFormat('MMMM d').format(DateTime.now().subtract(Duration(days: 1)))}';
+      if (_medSetYesterday.length == 0) {
+        return null;
+      }
+    } else if (i == _medSetToday.length + _medSetYesterday.length + 2) {
+      text = 'Old:';
+      if (_medSetOld.length == 0) {
+        return null;
+      }
+    }
+    return Column(
+      children: [
+        i != 0
+            ? Divider(
+                thickness: 2,
+                color: Colors.black,
+              )
+            : Container(),
+        Container(
+          margin: EdgeInsets.only(bottom: 5),
+          child: Center(
+            child: Text(
+              text,
+              style: TextStyle(fontSize: 20),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  int _fixI(int i, Set<MedInfo> _medSetToday, Set<MedInfo> _medSetYesterday) {
+    if (i < _medSetToday.length + 1) {
+      i -= 1;
+    }
+    if (i > _medSetToday.length + 1 &&
+        i < _medSetToday.length + _medSetYesterday.length + 2) {
+      i -= _medSetToday.length + 2;
+    }
+    if (i > _medSetToday.length + _medSetYesterday.length + 2) {
+      i -= _medSetToday.length + _medSetYesterday.length + 3;
+    }
+    return i;
+  }
+
+  Set<MedInfo> _findMedSet(int i) {
+    if (i < _medSetToday.length + 1) {
+      return _medSetToday;
+    } else if (i < _medSetToday.length + _medSetYesterday.length + 2) {
+      return _medSetYesterday;
+    } else {
+      return _medSetOld;
+    }
+  }
+
+  Color _findColor(int duration) {
+    if (duration < 12) {
+      return Colors.green;
+    } else if (12 <= duration && duration < 36) {
+      return Colors.yellow;
+    } else {
+      return Colors.red;
+    }
   }
 }
