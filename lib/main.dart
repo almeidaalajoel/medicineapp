@@ -22,6 +22,13 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
   int _selectedIndex = 0;
 
   List<Widget> _widgetOptions = <Widget>[

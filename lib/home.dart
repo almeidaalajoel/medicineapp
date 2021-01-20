@@ -10,6 +10,13 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
   List<MedInfo> _meds = List();
   Set<String> _stringSet = Set();
   Set<MedInfo> _medSetToday = Set();
@@ -57,17 +64,19 @@ class _HomeState extends State<Home> {
     return (_medSetToday == null &&
             _medSetYesterday == null &&
             _medSetOld == null)
-        ? Container()
+        ? Container(
+            child: Text(''),
+          )
         : WillPopScope(
             onWillPop: () {
               return;
             },
             child: Container(
-              //color: Colors.blue[100],
+              // color: Color.fromARGB(180, 30, 44, 52),
               child: Column(
                 children: [
                   Container(
-                    margin: EdgeInsets.only(top: 30),
+                    margin: EdgeInsets.only(top: 25),
                     child: Text(
                       'Most Recent Medications',
                       style:
@@ -149,23 +158,25 @@ class _HomeState extends State<Home> {
     if (i == 0) {
       text = "Today: ${DateFormat('MMMM d').format(DateTime.now())}";
       if (_medSetToday.length == 0) {
-        return null;
+        return Text('');
       }
     } else if (i == _medSetToday.length + 1) {
       text =
           'Yesterday: ${DateFormat('MMMM d').format(DateTime.now().subtract(Duration(days: 1)))}';
       if (_medSetYesterday.length == 0) {
-        return null;
+        return Text('');
       }
     } else if (i == _medSetToday.length + _medSetYesterday.length + 2) {
       text = 'Old:';
       if (_medSetOld.length == 0) {
-        return null;
+        return Text('');
       }
     }
     return Column(
       children: [
-        i != 0
+        (i == _medSetToday.length + 1 && _medSetToday.length != 0) ||
+                (i == _medSetToday.length + _medSetYesterday.length + 2 &&
+                    (_medSetToday.length != 0 || _medSetYesterday.length != 0))
             ? Divider(
                 thickness: 2,
                 color: Colors.black,

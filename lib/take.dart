@@ -7,8 +7,15 @@ class TakeMedicine extends StatefulWidget {
 }
 
 class _TakeMedicineState extends State<TakeMedicine> {
+  @override
+  void setState(fn) {
+    if (mounted) {
+      super.setState(fn);
+    }
+  }
+
   List<MedInfo> _meds = List();
-  Map<String, int> _medSet = Map();
+  Map<String, int> _medMap = Map();
   bool adding = false;
   bool deleting = false;
   DatabaseHelper _databaseHelper = DatabaseHelper();
@@ -22,7 +29,7 @@ class _TakeMedicineState extends State<TakeMedicine> {
           _meds = _med;
           for (int i = 0; i < _meds.length; i++) {
             if (_meds[i].display == 0) {
-              _medSet[_meds[i].name] = _meds[i].id;
+              _medMap[_meds[i].name] = _meds[i].id;
             }
           }
         });
@@ -41,17 +48,35 @@ class _TakeMedicineState extends State<TakeMedicine> {
         });
         return;
       },
-      child: Stack(
+      child: Column(
         children: [
-          Container(
-            alignment: Alignment(0, .5),
-            child: Container(
-              height: 550,
-              width: 400,
-              child: ListView.builder(
-                itemBuilder: (context, i) {
-                  return ElevatedButton(
-                    child: Text('${_medSet.keys.elementAt(i)}'),
+          Padding(
+            padding: const EdgeInsets.only(top: 25.0),
+            child: Text(
+              'Medicine',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              padding: EdgeInsets.zero,
+              itemBuilder: (context, i) {
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(45.0, 0, 45, 0),
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      primary: Colors.teal,
+                      onPrimary: Colors.white,
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(
+                          Radius.circular(30.0),
+                        ),
+                      ),
+                    ),
+                    child: Text('${_medMap.keys.elementAt(i)}'),
                     onLongPress: () {
                       setState(() {
                         adding = false;
@@ -61,80 +86,76 @@ class _TakeMedicineState extends State<TakeMedicine> {
                     },
                     onPressed: () async {
                       var medInfo = MedInfo(
-                        medDateTime: DateTime.now(),
-                        name: _medSet.keys.elementAt(i),
+                        medDateTime: DateTime.now().subtract(Duration(days: 0)),
+                        name: _medMap.keys.elementAt(i),
                         note: 'note',
                         display: 1,
                       );
                       _databaseHelper.insertMed(medInfo);
                     },
-                  );
-                },
-                itemCount: _medSet.length,
-              ),
-            ),
-          ),
-          adding
-              ? Container(
-                  alignment: Alignment(-.3, .95),
-                  child: Container(
-                    alignment: Alignment(0, 1),
-                    width: 200,
-                    height: 100,
-                    child: TextField(
-                      autofocus: true,
-                      onSubmitted: (string) {
-                        var medInfo = MedInfo(
-                          medDateTime: DateTime.now(),
-                          name: string,
-                          note: 'note',
-                          display: 0,
-                        );
-                        _databaseHelper.insertMed(medInfo).then((newId) {
-                          setState(() {
-                            adding = !adding;
-                            _medSet[string] = newId;
-                          });
-                        });
-                      },
-                      decoration: InputDecoration(
-                        fillColor: Colors.white,
-                        filled: true,
-                        hintText: 'New Medicine',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                    ),
                   ),
-                )
-              : Container(),
-          Container(
-            alignment: Alignment(.95, .95),
-            child: FloatingActionButton(
-              child: Icon(Icons.add),
-              onPressed: () {
-                setState(() {
-                  adding = !adding;
-                });
+                );
               },
+              itemCount: _medMap.length,
             ),
           ),
-          Container(
-            alignment: Alignment(0, -.9),
-            child: Text(
-              'Medicine',
-              style: TextStyle(
-                fontSize: 30,
-              ),
+          deleting ? buttonRow(index) : Container(),
+          Padding(
+            padding: const EdgeInsets.all(10),
+            child: Stack(
+              // mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                adding
+                    ? Align(
+                        alignment: Alignment.center,
+                        child: Container(
+                          width: 200,
+                          child: TextField(
+                            autofocus: true,
+                            onSubmitted: (string) {
+                              var medInfo = MedInfo(
+                                medDateTime: DateTime.now(),
+                                name: string,
+                                note: 'note',
+                                display: 0,
+                              );
+                              if (!_medMap.keys.contains(string)) {
+                                _databaseHelper
+                                    .insertMed(medInfo)
+                                    .then((newId) {
+                                  setState(() {
+                                    adding = !adding;
+                                    _medMap[string] = newId;
+                                  });
+                                });
+                              }
+                            },
+                            decoration: InputDecoration(
+                              fillColor: Colors.white,
+                              filled: true,
+                              hintText: 'New Medicine',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    : Container(color: Colors.red),
+                Align(
+                  child: FloatingActionButton(
+                    child: Icon(Icons.add),
+                    onPressed: () {
+                      setState(() {
+                        adding = !adding;
+                      });
+                    },
+                  ),
+                  alignment: Alignment.centerRight,
+                ),
+              ],
             ),
-          ),
-          deleting
-              ? Align(
-                  alignment: Alignment(0, -.8),
-                  child: buttonRow(index),
-                )
-              : Container(),
+          )
         ],
       ),
     );
@@ -148,9 +169,9 @@ class _TakeMedicineState extends State<TakeMedicine> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(primary: Colors.red),
             child: Text(
-              _medSet.keys.elementAt(i).length > 11
-                  ? 'Delete History ${_medSet.keys.elementAt(i).substring(0, 11)}...'
-                  : 'Delete History ${_medSet.keys.elementAt(i)}',
+              _medMap.keys.elementAt(i).length > 11
+                  ? 'Delete History ${_medMap.keys.elementAt(i).substring(0, 11)}...'
+                  : 'Delete History ${_medMap.keys.elementAt(i)}',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -158,8 +179,8 @@ class _TakeMedicineState extends State<TakeMedicine> {
             ),
             onPressed: () {
               setState(() {
-                _databaseHelper.deleteName(_medSet.keys.elementAt(i));
-                _medSet.remove(_medSet.keys.elementAt(i));
+                _databaseHelper.deleteName(_medMap.keys.elementAt(i));
+                _medMap.remove(_medMap.keys.elementAt(i));
                 deleting = false;
               });
             },
@@ -169,9 +190,9 @@ class _TakeMedicineState extends State<TakeMedicine> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(primary: Colors.yellow),
             child: Text(
-              _medSet.keys.elementAt(i).length > 11
-                  ? 'Delete Button ${_medSet.keys.elementAt(i).substring(0, 11)}...'
-                  : 'Delete Button ${_medSet.keys.elementAt(i)}',
+              _medMap.keys.elementAt(i).length > 11
+                  ? 'Delete Button ${_medMap.keys.elementAt(i).substring(0, 11)}...'
+                  : 'Delete Button ${_medMap.keys.elementAt(i)}',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Colors.black,
@@ -179,8 +200,8 @@ class _TakeMedicineState extends State<TakeMedicine> {
             ),
             onPressed: () {
               setState(() {
-                _databaseHelper.delete(_medSet[_medSet.keys.elementAt(i)]);
-                _medSet.remove(_medSet.keys.elementAt(i));
+                _databaseHelper.delete(_medMap[_medMap.keys.elementAt(i)]);
+                _medMap.remove(_medMap.keys.elementAt(i));
                 deleting = false;
               });
             },

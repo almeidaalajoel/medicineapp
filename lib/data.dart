@@ -84,7 +84,7 @@ class DatabaseHelper {
   insertMed(MedInfo medInfo) async {
     var db = await this.database;
     var result = await db.insert(tableMeds, medInfo.toMap());
-    print('result : $result');
+    //print('result : $result');
     return result;
   }
 
